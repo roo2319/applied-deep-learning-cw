@@ -48,7 +48,7 @@ class Trainer:
         self.model = model.to(device)
         self.device = device
         self.criterion = nn.MSELoss()
-        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, nesterov=True) 
+        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
         self.summary_writer = summary_writer
         self.step = 0
 
