@@ -9,30 +9,22 @@ from scipy import ndimage
 import matplotlib.pyplot as plt
 
 
-parser = argparse.ArgumentParser(description='Visualising model outputs')
 
-parser.add_argument('--preds', help='Model predictions')
-parser.add_argument('--gts', help = 'Ground truth data')
-parser.add_argument('--outdir', default = '.', type=Path, help='output directory for visualisation')
-
-args = parser.parse_args()
-
-def main():
-    #loading preds and gts
-    preds = pickle.load(open(args.preds, 'rb'))
-    gts = pickle.load(open(args.gts, 'rb'))
-
+def visualise(preds,gts):
     index = np.random.randint(0, len(preds), size=3) #get indices for 3 random images
 
     outputs = []
     for idx in index:
         #getting original image
-        image = gts[idx]['X_original']
+        image = gts[idx][0]
         image = np.swapaxes(np.swapaxes(image, 0, 1), 1, 2)
         outputs.append(image)
 
         #getting ground truth saliency map
-        sal_map = gts[idx]['y_original']
+        sal_map = gts[idx][1].numpy()
+        sal_map = np.reshape(sal_map, (48, 48))
+        sal_map = Image.fromarray((sal_map * 255).astype(np.uint8)).resize((image.shape[1], image.shape[0]))
+        sal_map = np.asarray(sal_map, dtype='float32') / 255.
         sal_map = ndimage.gaussian_filter(sal_map, 19)
         outputs.append(sal_map)
 
@@ -44,7 +36,7 @@ def main():
         outputs.append(pred)
 
     #plotting images 
-    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(32,32))
+    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(16,16))
     ax[0][0].set_title("Image", fontsize=40)
     ax[0][1].set_title("Ground Truth", fontsize=40)
     ax[0][2].set_title("Prediction", fontsize=40)
@@ -53,6 +45,12 @@ def main():
 
     for i, axi in enumerate(ax.flat):
         axi.imshow(outputs[i])
+    plt.show()
+
+def main():
+    #loading preds and gts
+    preds = pickle.load(open(args.preds, 'rb'))
+    gts = pickle.load(open(args.gts, 'rb'))
     
     #saving output
     if not args.outdir.parent.exists():
@@ -61,4 +59,11 @@ def main():
     plt.savefig(outpath)
     
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Visualising model outputs')
+
+    parser.add_argument('--preds', help='Model predictions')
+    parser.add_argument('--gts', help = 'Ground truth data')
+    parser.add_argument('--outdir', default = '.', type=Path, help='output directory for visualisation')
+
+    args = parser.parse_args()
     main()

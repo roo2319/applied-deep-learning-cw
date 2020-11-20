@@ -109,6 +109,7 @@ def main(args):
 
     # need to do model saving 
     torch.save(model,"model.pkl")
+    print("Model saved")
     summary_writer.close()
 
 if __name__ == "__main__":
