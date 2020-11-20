@@ -1,9 +1,11 @@
-from coursework import ShallowModel, Trainer
 import argparse
-from torch.utils.tensorboard import SummaryWriter
-import torch
-from typing import NamedTuple, Union
 from pathlib import Path
+from typing import NamedTuple, Union
+
+import torch
+from torch.utils.tensorboard import SummaryWriter
+
+from coursework import ShallowModel, Trainer
 
 # import torch.backends.cudnn
 # torch.backends.cudnn.benchmark = True (from cifar.py, idk what this does)
@@ -101,13 +103,12 @@ def main(args):
     trainer.train(
         args.epochs,
         args.val_frequency,
-        print_frequency=args.print_frequency,
         log_frequency=args.log_frequency,
     )
     print("Model trained")
 
     # need to do model saving 
-
+    torch.save(model,"model.pkl")
     summary_writer.close()
 
 if __name__ == "__main__":

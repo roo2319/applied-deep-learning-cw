@@ -1,4 +1,4 @@
-from torch import nn
+from torch import nn, flatten
 from torch.nn import functional as F
 from typing import NamedTuple
 

@@ -1,6 +1,6 @@
 import time
 from typing import Union
-from torch import nn, optim, Tensor
+from torch import nn, optim, Tensor, no_grad
 from torch.nn import functional as F
 from torch.optim import SGD
 from torch.utils.data import DataLoader
@@ -17,6 +17,7 @@ class Trainer:
         dataset_root: str,
         summary_writer: SummaryWriter,
         device: Device,
+        batch_size : int = 128 
     ):
         # load train/test splits of SALICON dataset
         train_dataset = Salicon(
@@ -30,17 +31,17 @@ class Trainer:
         # transformList = [transforms.RandomHorizontalFlip(), transforms.ToTensor()]
         # transform = transforms.Compose(transformList)
         
-        self.train_loader = torch.utils.data.DataLoader(
+        self.train_loader = DataLoader(
             train_dataset,
             shuffle=True,
-            batch_size=args.batch_size,
+            batch_size=batch_size,
             pin_memory=True,
             num_workers=1,
         )
-        self.val_loader = torch.utils.data.DataLoader(
+        self.val_loader = DataLoader(
             test_dataset,
             shuffle=False,
-            batch_size=args.batch_size,
+            batch_size=batch_size,
             num_workers=1,
             pin_memory=True,
         )
@@ -76,7 +77,7 @@ class Trainer:
 
                 # log step
                 if ((self.step + 1) % log_frequency) == 0:
-                    with torch.no_grad():
+                    with no_grad():
                         accuracy = compute_accuracy(labels, logits)
                     step_time = time.time() - step_start_time
                     self.log_metrics(epoch, accuracy, loss, step_time)
@@ -97,7 +98,7 @@ class Trainer:
                 self.validate()
                 self.model.train()
 
-    def print_metrics(self, epoch, accuracy, loss, data_load_time, step_time):
+    def print_metrics(self, epoch, accuracy, loss, step_time):
         epoch_step = self.step % len(self.train_loader)
         print(
                 f"epoch: [{epoch}], "
@@ -107,7 +108,7 @@ class Trainer:
                 f"step time: {step_time:.5f}"
         )
 
-    def log_metrics(self, epoch, accuracy, loss, data_load_time, step_time):
+    def log_metrics(self, epoch, accuracy, loss, step_time):
         self.summary_writer.add_scalar("epoch", epoch, self.step)
         self.summary_writer.add_scalars(
                 "accuracy",
@@ -120,9 +121,6 @@ class Trainer:
                 self.step
         )
         self.summary_writer.add_scalar(
-                "time/data", data_load_time, self.step
-        )
-        self.summary_writer.add_scalar(
                 "time/data", step_time, self.step
         )
 
@@ -132,7 +130,7 @@ class Trainer:
         self.model.eval()
 
         # No need to track gradients for validation, we're not optimizing.
-        with torch.no_grad():
+        with no_grad():
             for batch, labels in self.val_loader:
                 batch = batch.to(self.device)
                 labels = labels.to(self.device)
