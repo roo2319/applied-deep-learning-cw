@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--dataset-root", default="./")
 parser.add_argument("--log-dir", default=Path("logs"), type=Path)
-parser.add_argument("--learning-rate", default=1e-2, type=float, help="Learning rate")
+parser.add_argument("--learning-rate", default=3e-2, type=float, help="Learning rate")
 parser.add_argument(
     "--batch-size",
     default=128,
@@ -137,6 +137,8 @@ def main(args):
     )
 
     summary_writer.close()
+    torch.save(model,"model.pkl")
+
 
 class MaxOut(nn.Module):
     def __init__(self):
