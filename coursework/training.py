@@ -48,7 +48,7 @@ class Trainer:
         self.model = model.to(device)
         self.device = device
         self.criterion = nn.MSELoss()
-        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.5, weight_decay=0.0005, nesterov=True) 
+        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
         self.summary_writer = summary_writer
         self.step = 0
 
@@ -59,9 +59,15 @@ class Trainer:
         log_frequency: int = 5,
         start_epoch: int = 0
     ):
-        self.model.train()
+        # lrs = np.linspace(0.03,0.0001,epochs)
         for epoch in range(start_epoch, epochs):
+            self.model.train()
             for batch, gts in self.train_loader:
+                # LR decay
+                # need to update learning rate between 0.03 and 0.0001 (according to paper)
+                # optimstate = self.optimizer.state_dict()
+                # self.optimizer = SGD(self.model.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
+                # self.optimizer.load_state_dict(optimstate)
 
                 self.optimizer.zero_grad()
                 # load batch to device
@@ -70,20 +76,19 @@ class Trainer:
 
                 # train step
                 step_start_time = time.time()
-                logits = self.model.forward(batch)
-                loss = self.criterion(logits,gts)
+                output = self.model.forward(batch)
+                loss = self.criterion(output,gts)
                 loss.backward()
                 self.optimizer.step()
 
                 # log step
                 if ((self.step + 1) % log_frequency) == 0:
                     with no_grad():
-                        accuracy = compute_accuracy(gts, logits)
+                        accuracy = compute_accuracy(gts, output)
                     step_time = time.time() - step_start_time
                     self.log_metrics(epoch, accuracy, loss, step_time)
                     self.print_metrics(epoch, accuracy, loss, step_time)
 
-                # need to update learning rate between 0.03 and 0.0001 (according to paper)
                 # tilo says to use weight decay of 0.0005 (dunno what that means)
                 # tilo also says dont worry about momentum decay (nice)
 
@@ -134,10 +139,10 @@ class Trainer:
             for batch, gts in self.val_loader:
                 batch = batch.to(self.device)
                 gts = gts.to(self.device)
-                logits = self.model(batch)
-                loss = self.criterion(logits, gts)
+                output = self.model(batch)
+                loss = self.criterion(output, gts)
                 total_loss += loss.item()
-                preds = logits.cpu().numpy()
+                preds = output.cpu().numpy()
                 results["preds"].extend(list(preds))
                 results["gts"].extend(list(gts.cpu().numpy()))
 
