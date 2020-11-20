@@ -1,4 +1,4 @@
-from torch import nn, flatten
+from torch import nn, flatten, max as tmax
 from torch.nn import functional as F
 from typing import NamedTuple
 
@@ -9,7 +9,9 @@ class MaxOut(nn.Module):
 
     def forward(self, x):
         split = x.shape[1]//2
-        return x[:,:split]
+        a = x[:,:split]
+        b = x[:,split:]
+        return tmax(a,b)
 
 class ImageShape(NamedTuple):
     height: int

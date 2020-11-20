@@ -48,7 +48,7 @@ class Trainer:
         self.model = model.to(device)
         self.device = device
         self.criterion = nn.MSELoss()
-        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
+        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.5, weight_decay=0.0005, nesterov=True) 
         self.summary_writer = summary_writer
         self.step = 0
 
@@ -61,24 +61,24 @@ class Trainer:
     ):
         self.model.train()
         for epoch in range(start_epoch, epochs):
-            for batch, labels in self.train_loader:
+            for batch, gts in self.train_loader:
 
+                self.optimizer.zero_grad()
                 # load batch to device
                 batch = batch.to(self.device)
-                labels = labels.to(self.device)
+                gts = gts.to(self.device)
 
                 # train step
                 step_start_time = time.time()
                 logits = self.model.forward(batch)
-                loss = self.criterion(logits,labels)
+                loss = self.criterion(logits,gts)
                 loss.backward()
                 self.optimizer.step()
-                self.optimizer.zero_grad()
 
                 # log step
                 if ((self.step + 1) % log_frequency) == 0:
                     with no_grad():
-                        accuracy = compute_accuracy(labels, logits)
+                        accuracy = compute_accuracy(gts, logits)
                     step_time = time.time() - step_start_time
                     self.log_metrics(epoch, accuracy, loss, step_time)
                     self.print_metrics(epoch, accuracy, loss, step_time)
@@ -125,24 +125,24 @@ class Trainer:
         )
 
     def validate(self):
-        results = {"preds": [], "labels": []}
+        results = {"preds": [], "gts": []}
         total_loss = 0
         self.model.eval()
 
         # No need to track gradients for validation, we're not optimizing.
         with no_grad():
-            for batch, labels in self.val_loader:
+            for batch, gts in self.val_loader:
                 batch = batch.to(self.device)
-                labels = labels.to(self.device)
+                gts = gts.to(self.device)
                 logits = self.model(batch)
-                loss = self.criterion(logits, labels)
+                loss = self.criterion(logits, gts)
                 total_loss += loss.item()
-                preds = logits.argmax(dim=-1).cpu().numpy()
+                preds = logits.cpu().numpy()
                 results["preds"].extend(list(preds))
-                results["labels"].extend(list(labels.cpu().numpy()))
+                results["gts"].extend(list(gts.cpu().numpy()))
 
         accuracy = compute_accuracy(
-            np.array(results["labels"]), np.array(results["preds"])
+            np.array(results["gts"]), np.array(results["preds"])
         )
         average_loss = total_loss / len(self.val_loader)
 
@@ -161,11 +161,11 @@ class Trainer:
 
 
 def compute_accuracy(
-    labels: Union[Tensor, np.ndarray], preds: Union[Tensor, np.ndarray]
+    gts: Union[Tensor, np.ndarray], preds: Union[Tensor, np.ndarray]
 ) -> float:
     """
     Args:
-        labels: ``(batch_size, class_count)`` tensor or array containing example labels
+        gts: ``(batch_size, class_count)`` tensor or array containing example gts
         preds: ``(batch_size, class_count)`` tensor or array containing model prediction
     """
    
