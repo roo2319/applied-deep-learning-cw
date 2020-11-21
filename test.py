@@ -1,3 +1,4 @@
+import pickle
 from coursework import Salicon, visualise
 import torch
 from torch.utils.data import DataLoader
@@ -10,7 +11,7 @@ def main():
         device = torch.device("cpu")
 
     test_dataset = Salicon(
-            "train.pkl"
+            "val.pkl"
         )
 
     val_loader = DataLoader(
@@ -20,8 +21,9 @@ def main():
         num_workers=1,
         pin_memory=True,
     )
-    model = torch.load("model.pkl")
-    results = {"preds": [], "gts": []}
+    modelname = input("Enter a model name: ")
+    model = torch.load(modelname)
+    preds = []
     total_loss = 0
     model.eval()
 
@@ -31,12 +33,13 @@ def main():
             batch = batch.to(device)
             gts = gts.to(device)
             logits = model(batch)
-            preds = logits.cpu().numpy()
-            gts = gts.cpu().numpy()
-            results["preds"].extend(list(preds))
-            results["gts"].extend(list(gts))
-            break
-    visualise(results["preds"],test_dataset)
+            outputs = logits.cpu().numpy()
+            preds.extend(list(outputs))
+    
+    with open("val.pkl",'rb') as f:
+        val = pickle.load(f)
+
+    visualise(preds,val)
 
 if __name__ == '__main__':
     main()

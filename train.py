@@ -98,7 +98,7 @@ def main(args):
     else:
         DEVICE = torch.device("cpu")
 
-    trainer = Trainer(model, args.dataset_root, summary_writer, DEVICE)
+    trainer = Trainer(model, args.dataset_root, summary_writer, DEVICE,args.batch_size)
     
     trainer.train(
         args.epochs,

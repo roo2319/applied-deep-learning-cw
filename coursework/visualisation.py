@@ -16,15 +16,12 @@ def visualise(preds,gts):
     outputs = []
     for idx in index:
         #getting original image
-        image = gts[idx][0]
+        image = gts[idx]['X_original']
         image = np.swapaxes(np.swapaxes(image, 0, 1), 1, 2)
         outputs.append(image)
 
         #getting ground truth saliency map
-        sal_map = gts[idx][1].numpy()
-        sal_map = np.reshape(sal_map, (48, 48))
-        sal_map = Image.fromarray((sal_map * 255).astype(np.uint8)).resize((image.shape[1], image.shape[0]))
-        sal_map = np.asarray(sal_map, dtype='float32') / 255.
+        sal_map = gts[idx]['y_original']
         sal_map = ndimage.gaussian_filter(sal_map, 19)
         outputs.append(sal_map)
 
