@@ -11,7 +11,7 @@ class MaxOut(nn.Module):
         split = x.shape[1]//2
         a = x[:,:split]
         b = x[:,split:]
-        return tmax(a,b)
+        return a.max(b)
 
 class ShallowModel(nn.Module):
     def __init__(self):
@@ -56,7 +56,7 @@ class ShallowModel(nn.Module):
         x = self.pool3(F.relu(self.conv3(x)))
         x = flatten(x,start_dim=1) # ??????????????
         x = self.fc1(x)
-        x = self.maxout(x)
+        x = F.relu(self.maxout(x))
         x = self.fc2(x)
         return x
 

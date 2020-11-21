@@ -1,6 +1,6 @@
 import time
 from typing import Union
-from torch import nn, optim, Tensor, no_grad
+from torch import nn, optim, Tensor, no_grad, save
 from torch.nn import functional as F
 from torch.optim import SGD
 from torch.utils.data import DataLoader
@@ -59,15 +59,15 @@ class Trainer:
         log_frequency: int = 5,
         start_epoch: int = 0
     ):
-        # lrs = np.linspace(0.03,0.0001,epochs)
+        lrs = np.linspace(0.03,0.0001,epochs)
         for epoch in range(start_epoch, epochs):
             self.model.train()
             for batch, gts in self.train_loader:
                 # LR decay
                 # need to update learning rate between 0.03 and 0.0001 (according to paper)
-                # optimstate = self.optimizer.state_dict()
-                # self.optimizer = SGD(self.model.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
-                # self.optimizer.load_state_dict(optimstate)
+                optimstate = self.optimizer.state_dict()
+                self.optimizer = SGD(self.model.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
+                self.optimizer.load_state_dict(optimstate)
 
                 self.optimizer.zero_grad()
                 # load batch to device
@@ -102,6 +102,8 @@ class Trainer:
             if ((epoch + 1) % val_frequency) == 0:
                 self.validate()
                 self.model.train()
+            if (epoch+1) % 10 == 0:
+                save(self.model,"checkp_model.pkl") 
 
     def print_metrics(self, epoch, accuracy, loss, step_time):
         epoch_step = self.step % len(self.train_loader)
