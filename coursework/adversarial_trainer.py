@@ -1,6 +1,8 @@
 import time
 from typing import Union
-from torch import nn, optim, Tensor, no_grad, save
+from numpy.core.fromnumeric import squeeze
+from torch import nn, optim, Tensor, no_grad, save, reshape, cat, unsqueeze, squeeze
+import torch
 from torch.nn import functional as F
 from torch.optim import SGD
 from torch.utils.data import DataLoader
@@ -10,10 +12,11 @@ from torch import device as Device
 import numpy as np
 from .dataset import Salicon
 
-class Trainer:
+class AdversarialTrainer:
     def __init__(
         self,
-        model: nn.Module,
+        generator: nn.Module,
+        discriminator: nn.Module,
         dataset_root: str,
         summary_writer: SummaryWriter,
         device: Device,
@@ -45,10 +48,14 @@ class Trainer:
             num_workers=1,
             pin_memory=True,
         )
-        self.model = model.to(device)
+        self.batch_size = batch_size
+        self.generator = generator.to(device)
+        self.discriminator = discriminator.to(device)
         self.device = device
         self.criterion = nn.MSELoss()
-        self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
+        self.dis_criterion = nn.BCELoss()
+        self.optimizer = SGD(self.generator.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
+        self.dis_optimizer = SGD(self.discriminator.parameters(),lr=0.03, momentum=0.9,weight_decay=0.0005,nesterov=True)
         self.summary_writer = summary_writer
         self.step = 0
 
@@ -61,12 +68,15 @@ class Trainer:
     ):
         lrs = np.linspace(0.03,0.0001,epochs)
         for epoch in range(start_epoch, epochs):
-            self.model.train()
+            self.generator.train()
+            self.discriminator.train()
             for batch, gts in self.train_loader:
                 # LR decay
                 # need to update learning rate between 0.03 and 0.0001 (according to paper)
+            # -------------------------- GENERATOR -----------------------------
+                
                 optimstate = self.optimizer.state_dict()
-                self.optimizer = SGD(self.model.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
+                self.optimizer = SGD(self.generator.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
                 self.optimizer.load_state_dict(optimstate)
 
                 self.optimizer.zero_grad()
@@ -76,12 +86,43 @@ class Trainer:
 
                 # train step
                 step_start_time = time.time()
-                output = self.model.forward(batch)
+                output = self.generator.forward(batch)
+
                 loss = self.criterion(output,gts)
                 loss.backward()
                 self.optimizer.step()
 
-                # log step
+
+            # -------------------- DISCRIMINATOR --------------------------------
+
+
+                self.dis_optimizer.zero_grad()
+                scaled_image = F.interpolate(batch,(48,48))
+                out_images = unsqueeze(reshape(output,(self.batch_size,48,48)),1)
+                gt_images = unsqueeze(reshape(gts,(self.batch_size,48,48)),1)
+                
+                pred_stack = cat((scaled_image,
+                                  out_images), dim=1)
+                gt_stack = cat((scaled_image,
+                                  gt_images), dim=1)
+
+                stack = cat((pred_stack,gt_stack),dim=0)
+                r = torch.randperm(self.batch_size * 2)
+                labels = cat((torch.zeros(self.batch_size),torch.ones(self.batch_size))) 
+                stack = stack[r][:]
+                labels = labels[r]
+                labels = labels.to(self.device)
+
+                dis_loss = self.discriminator.forward(stack)
+                # print(dis_loss)
+                
+                dis_loss = squeeze(dis_loss)
+                dis_loss = self.dis_criterion(dis_loss, labels)
+                dis_loss.backward()
+                self.dis_optimizer.step()
+
+            #  --------------------------- LOGS --------------------------------
+
                 if ((self.step + 1) % log_frequency) == 0:
                     with no_grad():
                         accuracy = compute_accuracy(gts, output)
@@ -101,9 +142,9 @@ class Trainer:
             # validate
             if ((epoch + 1) % val_frequency) == 0:
                 self.validate()
-                self.model.train()
+                self.generator.train()
             if (epoch+1) % 10 == 0:
-                save(self.model,"checkp_model.pkl") 
+                save(self.generator,"checkp_model.pkl") 
 
 
     def print_metrics(self, epoch, accuracy, loss, step_time):
@@ -135,7 +176,7 @@ class Trainer:
     def validate(self):
         results = {"preds": [], "gts": []}
         total_loss = 0
-        self.model.eval()
+        self.generator.eval()
 
         # No need to track gradients for validation, we're not optimizing.
         with no_grad():
@@ -144,7 +185,7 @@ class Trainer:
                 exit()
                 batch = batch.to(self.device)
                 gts = gts.to(self.device)
-                output = self.model(batch)
+                output = self.generator(batch)
                 loss = self.criterion(output, gts)
                 total_loss += loss.item()
                 preds = output.cpu().numpy()
@@ -176,7 +217,7 @@ def compute_accuracy(
     """
     Args:
         gts: ``(batch_size, class_count)`` tensor or array containing example gts
-        preds: ``(batch_size, class_count)`` tensor or array containing model prediction
+        preds: ``(batch_size, class_count)`` tensor or array containing generator prediction
     """
    
     return 0

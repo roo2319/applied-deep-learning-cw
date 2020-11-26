@@ -1,4 +1,5 @@
 from torch import nn, flatten, max as tmax
+import torch
 from torch.nn import functional as F
 from typing import NamedTuple
 
@@ -69,54 +70,86 @@ class ShallowModel(nn.Module):
         if hasattr(layer, "weight"):
             layer.weight.data.normal_(0.0, 0.01)
 
-# class Discriminator(nn.Module):
-#     def __init__(self):
+class Discriminator(nn.Module):
+    def __init__(self):
 
-#         super().__init__()
+        super().__init__()
 
-#         self.conv1_1 = nn.Conv2d(
-#             in_channels=,
-#             out_channels=,
-#             kernel_size=(,),
-#             padding=,
-#         )
-#         self.conv1_2 = nn.Conv2d(
-#             in_channels=,
-#             out_channels=,
-#             kernel_size=(,),
-#             padding=,
-#         )
-#         self.pool1 = nn.MaxPool2d(kernel_size=(, ), stride=)
+        self.conv1_1 = nn.Conv2d(
+            in_channels=4,
+            out_channels=3,
+            kernel_size=(1,1),
+            padding=1
+        )
+        self.conv1_2 = nn.Conv2d(
+            in_channels=3,
+            out_channels=32,
+            kernel_size=(3,3),
+            padding=1,
+        )
+        self.pool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
 
-#         self.conv2_1
-#         self.conv2_2
-#         self.pool2
+        self.conv2_1 = nn.Conv2d(
+            in_channels=32,
+            out_channels=64,
+            kernel_size=(3,3),
+            padding=1
+        )
+        self.conv2_2 = nn.Conv2d(
+            in_channels=64,
+            out_channels=64,
+            kernel_size=(3,3),
+            padding=1
+        )
+        self.pool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
 
-#         self.conv3_1
-#         self.conv3_2
-#         self.pool3
+        self.conv3_1 = nn.Conv2d(
+            in_channels=64,
+            out_channels=64,
+            kernel_size=(3,3),
+            padding=1
+        )
+        self.conv3_2 = nn.Conv2d(
+            in_channels=64,
+            out_channels=64,
+            kernel_size=(3,3),
+            padding=1
+        )
+        self.pool3 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
 
-#         self.fc1
-#         self.fc2
-#         self.fc3
+        self.fc1 = nn.Linear(2304,100)
+        self.initialise_layer(self.fc1)
+        self.fc2 = nn.Linear(100,2)
+        self.initialise_layer(self.fc2)
+        self.fc3 = nn.Linear(2,1)
+        self.initialise_layer(self.fc3)
 
-#     def forward(x):
-#         x=F.relu(self.conv1_1(x))
-#         x=F.relu(self.conv1_2(x))
-#         x=self.pool1(x)
+    def forward(self, x):
+        x=F.relu(self.conv1_1(x))
+        x=F.relu(self.conv1_2(x))
+        x=self.pool1(x)
 
-#         x=F.relu(self.conv2_1(x))
-#         x=F.relu(self.conv2_2(x))
-#         x=self.pool2(x)
+        x=F.relu(self.conv2_1(x))
+        x=F.relu(self.conv2_2(x))
+        x=self.pool2(x)
 
-#         x=F.relu(self.conv3_1(x))
-#         x=F.relu(self.conv3_2(x))
-#         x=self.pool3(x)
+        x=F.relu(self.conv3_1(x))
+        x=F.relu(self.conv3_2(x))
+        x=self.pool3(x)
 
-#         x=F.tanh(self.fc1(x))
-#         x=F.tanh(self.fc2(x))
-#         x=F.sigmoid(self.fc3(x))
-#         return x
+        x = flatten(x,start_dim=1)
+        
+        x=F.tanh(self.fc1(x))
+        x=F.tanh(self.fc2(x))
+        x=F.sigmoid(self.fc3(x))
+        return x
+
+    @staticmethod
+    def initialise_layer(layer):
+        if hasattr(layer, "bias"):
+            layer.bias.data.fill_(0.1)
+        if hasattr(layer, "weight"):
+            layer.weight.data.normal_(0.0, 0.01)
 
 
 

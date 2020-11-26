@@ -1,11 +1,13 @@
 import argparse
+from coursework import adversarial_trainer
+from coursework.model import Discriminator
 from pathlib import Path
-from typing import NamedTuple, Union
+from typing import Generator, NamedTuple, Union
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from coursework import ShallowModel, Discriminator, Trainer, AdversarialTrainer
+from coursework import ShallowModel, AdversarialTrainer
 
 # import torch.backends.cudnn
 # torch.backends.cudnn.benchmark = True (from cifar.py, idk what this does)
@@ -53,13 +55,6 @@ parser.add_argument(
     type=int,
     help="Number of worker processes used to load data.",
 )
-parser.add_argument(
-    "--adversarial",
-    default=0,
-    type=bool,
-    help="Whether to use a GAN",
-)
-
 
 def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
     """Get a unique directory that hasn't been logged to before for use with a TB
@@ -90,9 +85,7 @@ def main(args):
 
     # create model
     generator = ShallowModel()
-    if args.adversarial:
-        discriminator = Discriminator()
-
+    discriminator = Discriminator()
     print("Created model")
 
     log_dir = get_summary_writer_log_dir(args)
@@ -108,10 +101,7 @@ def main(args):
     else:
         DEVICE = torch.device("cpu")
 
-    if args.adversarial:
-        trainer = AdversarialTrainer(generator, discriminator, args.dataset_root, summary_writer, DEVICE,args.batch_size)
-    else:
-        trainer = Trainer(generator, args.dataset_root, summary_writer, DEVICE,args.batch_size)
+    trainer = AdversarialTrainer(generator,discriminator, args.dataset_root, summary_writer, DEVICE,args.batch_size)
     
     trainer.train(
         args.epochs,
