@@ -69,3 +69,56 @@ class ShallowModel(nn.Module):
         if hasattr(layer, "weight"):
             layer.weight.data.normal_(0.0, 0.01)
 
+# class Discriminator(nn.Module):
+#     def __init__(self):
+
+#         super().__init__()
+
+#         self.conv1_1 = nn.Conv2d(
+#             in_channels=,
+#             out_channels=,
+#             kernel_size=(,),
+#             padding=,
+#         )
+#         self.conv1_2 = nn.Conv2d(
+#             in_channels=,
+#             out_channels=,
+#             kernel_size=(,),
+#             padding=,
+#         )
+#         self.pool1 = nn.MaxPool2d(kernel_size=(, ), stride=)
+
+#         self.conv2_1
+#         self.conv2_2
+#         self.pool2
+
+#         self.conv3_1
+#         self.conv3_2
+#         self.pool3
+
+#         self.fc1
+#         self.fc2
+#         self.fc3
+
+#     def forward(x):
+#         x=F.relu(self.conv1_1(x))
+#         x=F.relu(self.conv1_2(x))
+#         x=self.pool1(x)
+
+#         x=F.relu(self.conv2_1(x))
+#         x=F.relu(self.conv2_2(x))
+#         x=self.pool2(x)
+
+#         x=F.relu(self.conv3_1(x))
+#         x=F.relu(self.conv3_2(x))
+#         x=self.pool3(x)
+
+#         x=F.tanh(self.fc1(x))
+#         x=F.tanh(self.fc2(x))
+#         x=F.sigmoid(self.fc3(x))
+#         return x
+
+
+
+
+
