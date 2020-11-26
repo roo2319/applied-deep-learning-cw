@@ -55,7 +55,7 @@ class AdversarialTrainer:
         self.criterion = nn.MSELoss()
         self.dis_criterion = nn.BCELoss()
         self.optimizer = SGD(self.generator.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
-        self.dis_optimizer = SGD(self.discriminator.parameters(),lr=0.03, momentum=0.9,weight_decay=0.0005,nesterov=True)
+        self.dis_optimizer = SGD(self.discriminator.parameters(),lr=0.01, momentum=0.9,weight_decay=0.00001,nesterov=True)
         self.summary_writer = summary_writer
         self.step = 0
 
@@ -71,10 +71,10 @@ class AdversarialTrainer:
             self.generator.train()
             self.discriminator.train()
             for batch, gts in self.train_loader:
-                # LR decay
                 # need to update learning rate between 0.03 and 0.0001 (according to paper)
             # -------------------------- GENERATOR -----------------------------
                 
+                # LR decay
                 optimstate = self.optimizer.state_dict()
                 self.optimizer = SGD(self.generator.parameters(),lr=lrs[epoch], momentum=0.9, weight_decay=0.0005, nesterov=True)
                 self.optimizer.load_state_dict(optimstate)
@@ -95,30 +95,28 @@ class AdversarialTrainer:
 
             # -------------------- DISCRIMINATOR --------------------------------
 
+                output.detach_()
 
                 self.dis_optimizer.zero_grad()
                 scaled_image = F.interpolate(batch,(48,48))
-                out_images = unsqueeze(reshape(output,(self.batch_size,48,48)),1)
-                gt_images = unsqueeze(reshape(gts,(self.batch_size,48,48)),1)
+                out_images = unsqueeze(reshape(output,(len(batch),48,48)),1)
+                gt_images = unsqueeze(reshape(gts,(len(batch),48,48)),1)
                 
                 pred_stack = cat((scaled_image,
                                   out_images), dim=1)
                 gt_stack = cat((scaled_image,
                                   gt_images), dim=1)
+                pred_stack = pred_stack.to(self.device)
+                gt_stack = gt_stack.to(self.device)
+                zeros = torch.zeros(pred_stack.shape[0]).to(self.device)
+                ones = torch.ones(gt_stack.shape[0]).to(self.device)
 
-                stack = cat((pred_stack,gt_stack),dim=0)
-                r = torch.randperm(self.batch_size * 2)
-                labels = cat((torch.zeros(self.batch_size),torch.ones(self.batch_size))) 
-                stack = stack[r][:]
-                labels = labels[r]
-                labels = labels.to(self.device)
+                pred_loss = self.dis_criterion(self.discriminator.forward(pred_stack),zeros)
+                gt_loss = self.dis_criterion(self.discriminator.forward(gt_stack),ones)
 
-                dis_loss = self.discriminator.forward(stack)
-                # print(dis_loss)
-                
-                dis_loss = squeeze(dis_loss)
-                dis_loss = self.dis_criterion(dis_loss, labels)
+                dis_loss = (pred_loss + gt_loss)/2
                 dis_loss.backward()
+                print(dis_loss)
                 self.dis_optimizer.step()
 
             #  --------------------------- LOGS --------------------------------
@@ -181,8 +179,6 @@ class AdversarialTrainer:
         # No need to track gradients for validation, we're not optimizing.
         with no_grad():
             for batch, gts in self.val_loader:
-                print(batch.shape,gts.shape)
-                exit()
                 batch = batch.to(self.device)
                 gts = gts.to(self.device)
                 output = self.generator(batch)

@@ -105,7 +105,6 @@ class Trainer:
             if (epoch+1) % 10 == 0:
                 save(self.model,"checkp_model.pkl") 
 
-
     def print_metrics(self, epoch, accuracy, loss, step_time):
         epoch_step = self.step % len(self.train_loader)
         print(
@@ -140,8 +139,6 @@ class Trainer:
         # No need to track gradients for validation, we're not optimizing.
         with no_grad():
             for batch, gts in self.val_loader:
-                print(batch.shape,gts.shape)
-                exit()
                 batch = batch.to(self.device)
                 gts = gts.to(self.device)
                 output = self.model(batch)
