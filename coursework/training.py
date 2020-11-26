@@ -26,10 +26,6 @@ class Trainer:
         test_dataset = Salicon(
             dataset_root + "val.pkl"
         )
-
-        # NEED TO ADD RANDOM HORIZONTAL FLIPPING (according to paper)
-        # transformList = [transforms.RandomHorizontalFlip(), transforms.ToTensor()]
-        # transform = transforms.Compose(transformList)
         
         self.train_loader = DataLoader(
             train_dataset,
@@ -47,7 +43,7 @@ class Trainer:
         )
         self.model = model.to(device)
         self.device = device
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.BCELoss()
         self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
         self.summary_writer = summary_writer
         self.step = 0
@@ -88,9 +84,6 @@ class Trainer:
                     step_time = time.time() - step_start_time
                     self.log_metrics(epoch, accuracy, loss, step_time)
                     self.print_metrics(epoch, accuracy, loss, step_time)
-
-                # tilo says to use weight decay of 0.0005 (dunno what that means)
-                # tilo also says dont worry about momentum decay (nice)
 
                 # count steps
                 self.step += 1
