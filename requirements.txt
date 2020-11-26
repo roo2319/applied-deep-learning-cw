@@ -2,3 +2,5 @@ numpy
 torch
 torchvision
 tensorboard
+matplotlib
+scipy
