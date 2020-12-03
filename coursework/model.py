@@ -1,4 +1,4 @@
-from torch import nn, flatten, max as tmax
+from torch import nn, flatten, max as tmax 
 from torch.nn import functional as F
 from typing import NamedTuple
 
@@ -56,7 +56,7 @@ class ShallowModel(nn.Module):
         x = flatten(x,start_dim=1) 
         x = self.fc1(x)
         x = F.relu(self.maxout(x))
-        x = F.sigmoid(self.fc2(x))
+        x = self.fc2(x)
         return x
 
 # The weights in all layers are initialized from a normal
