@@ -53,6 +53,13 @@ parser.add_argument(
     type=int,
     help="Number of worker processes used to load data.",
 )
+parser.add_argument(
+    "-cc",
+    "--cc",
+    default=False,
+    type=bool,
+    help="Whether to use CC loss during training (True) or MSE loss (False)",
+)
 
 def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
     """Get a unique directory that hasn't been logged to before for use with a TB
@@ -98,12 +105,12 @@ def main(args):
     else:
         DEVICE = torch.device("cpu")
 
-    trainer = Trainer(model, args.dataset_root, summary_writer, DEVICE,args.batch_size)
+    trainer = Trainer(model, args.dataset_root, summary_writer, DEVICE,args.batch_size, cc_loss = args.cc)
     
     trainer.train(
         args.epochs,
         args.val_frequency,
-        log_frequency=args.log_frequency,
+        log_frequency=args.log_frequency
     )
     print("Model trained")
 

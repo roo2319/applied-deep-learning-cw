@@ -1,6 +1,6 @@
 import time
 from typing import Union
-from torch import nn, optim, Tensor, no_grad, save
+from torch import nn, optim, Tensor, no_grad, save, mean, sqrt, sum as tsum
 from torch.nn import functional as F
 from torch.optim import SGD
 from torch.utils.data import DataLoader
@@ -17,7 +17,8 @@ class Trainer:
         dataset_root: str,
         summary_writer: SummaryWriter,
         device: Device,
-        batch_size : int = 128 
+        batch_size : int = 128,
+        cc_loss : bool = False
     ):
         # load train/test splits of SALICON dataset
         train_dataset = Salicon(
@@ -43,7 +44,10 @@ class Trainer:
         )
         self.model = model.to(device)
         self.device = device
-        self.criterion = nn.MSELoss()
+        if cc_loss:
+            self.criterion = CCLoss
+        else:
+            self.criterion = nn.MSELoss()
         self.optimizer = SGD(self.model.parameters(),lr=0.03, momentum=0.9, weight_decay=0.0005, nesterov=True) 
         self.summary_writer = summary_writer
         self.step = 0
@@ -158,7 +162,11 @@ class Trainer:
         )
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
 
-
+def CCLoss(x,y):
+    vx = x - mean(x)
+    vy = y - mean(y)
+    loss = tsum(vx * vy) / (sqrt(tsum(vx ** 2)) * sqrt(tsum(vy ** 2)))
+    return -loss
 
 def compute_accuracy(
     gts: Union[Tensor, np.ndarray], preds: Union[Tensor, np.ndarray]
