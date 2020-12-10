@@ -83,11 +83,9 @@ class Trainer:
 
                 # log step
                 if ((self.step + 1) % log_frequency) == 0:
-                    with no_grad():
-                        accuracy = compute_accuracy(gts, output)
                     step_time = time.time() - step_start_time
-                    self.log_metrics(epoch, accuracy, loss, step_time)
-                    self.print_metrics(epoch, accuracy, loss, step_time)
+                    self.log_metrics(epoch, loss, step_time)
+                    self.print_metrics(epoch, loss, step_time)
 
                 # count steps
                 self.step += 1
@@ -102,23 +100,18 @@ class Trainer:
             if (epoch+1) % 10 == 0:
                 save(self.model,"checkp_model.pkl") 
 
-    def print_metrics(self, epoch, accuracy, loss, step_time):
+    def print_metrics(self, epoch, loss, step_time):
         epoch_step = self.step % len(self.train_loader)
         print(
                 f"epoch: [{epoch}], "
                 f"step: [{epoch_step}/{len(self.train_loader)}], "
                 f"batch loss: {loss:.5f}, "
-                f"batch accuracy: {accuracy * 100:2.2f}, "
                 f"step time: {step_time:.5f}"
         )
 
-    def log_metrics(self, epoch, accuracy, loss, step_time):
+    def log_metrics(self, epoch, loss, step_time):
         self.summary_writer.add_scalar("epoch", epoch, self.step)
-        self.summary_writer.add_scalars(
-                "accuracy",
-                {"train": accuracy},
-                self.step
-        )
+
         self.summary_writer.add_scalars(
                 "loss",
                 {"train": float(loss.item())},
@@ -145,39 +138,21 @@ class Trainer:
                 results["preds"].extend(list(preds))
                 results["gts"].extend(list(gts.cpu().numpy()))
 
-        accuracy = compute_accuracy(
-            np.array(results["gts"]), np.array(results["preds"])
-        )
+
         average_loss = total_loss / len(self.val_loader)
 
-        self.summary_writer.add_scalars(
-                "accuracy",
-                {"test": accuracy},
-                self.step
-        )
         self.summary_writer.add_scalars(
                 "loss",
                 {"test": average_loss},
                 self.step
         )
-        print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
+        print(f"validation loss: {average_loss:.5f}")
 
 def CCLoss(x,y):
     vx = x - mean(x)
     vy = y - mean(y)
     loss = tsum(vx * vy) / (sqrt(tsum(vx ** 2)) * sqrt(tsum(vy ** 2)))
     return -loss
-
-def compute_accuracy(
-    gts: Union[Tensor, np.ndarray], preds: Union[Tensor, np.ndarray]
-) -> float:
-    """
-    Args:
-        gts: ``(batch_size, class_count)`` tensor or array containing example gts
-        preds: ``(batch_size, class_count)`` tensor or array containing model prediction
-    """
-   
-    return 0
 
 
     
